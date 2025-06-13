@@ -64,12 +64,13 @@ All MCPs are declared in **`mcp_config.json`**. Edit this file to enable/disab
 Once **enabled**, each service auto‑starts at boot and is reachable from any device on your LAN at:
 
 ```
-http://<DEVICE_IP>:<PORT>/sse
+http://<DEVICE_IP>:<PORT>/sse 
+# or in most case you can just use http://distiller.local:<PORT>/sse if you running everything locally
 ```
 
 ### 2.2 One‑Click install in **Cursor**
 
-[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/install-mcp?name=camera&config=eyJ1cmwiOiJodHRwOi8vMTkyLjE2OC4wLjIxODo4MDAxL3NzZSJ9)
+[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/install-mcp?name=camera&config=eyJ1cmwiOiJodHRwOi8vZGlzdGlsbGVyLmxvY2FsOjgwMDEvc3NlIn0%3D)
 
 > **Heads‑up:** Swap `<DEVICE_IP>` for your board actual address (e.g. `192.168.0.218`).
 > Need remote access? [Ngrok](https://ngrok.com/docs/getting-started/) offers a free HTTPS tunnel so you can reach the MCP from anywhere.
