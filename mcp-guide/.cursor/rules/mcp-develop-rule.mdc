@@ -274,6 +274,9 @@ dev = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/{mcp-server-name}"]
+
 [tool.black]
 line-length = 88
 target-version = ['py311']
@@ -340,7 +343,11 @@ Reference Documentation:
 
 import sys
 from fastmcp import FastMCP
-
+from fastmcp.utilities.types import Image
+try:
+    from PIL import Image as PILImage
+except ImportError:
+    print("Please install Pillow: uv add pillow")
 # Import domain logic with graceful error handling
 try:
     from .{domain_module} import {DomainClass}
@@ -368,6 +375,22 @@ async def get_status() -> str:
         return f"Status: {status}"
     except Exception as e:
         return f"Status: Error - {str(e)}"
+
+@mcp.tool
+def generate_solid_color_image(width: int, height: int, color: str) -> Image:
+    """Generate a solid-color image of the specified color"""
+    # use Pillow to create image
+    img = PILImage.new("RGB", (width, height), color=color)
+
+    # save image to memory
+    buffer = io.BytesIO()
+    img.save(buffer, format="PNG")
+    img_bytes = buffer.getvalue()
+
+    # use fastmcp.utilities.types.Image to return
+    return Image(data=img_bytes, format="png")
+
+
 
 def main(transport: str = 'streamable-http', host: str = '0.0.0.0', port: int = 8000):
     """Main server function with transport configuration."""
@@ -505,7 +528,7 @@ async def test_domain_logic_integration(mcp_server):
    - **STEP 1 - REQUIREMENTS**: Clarify and confirm user requirements - ask specific questions about intended functionality, data sources, APIs, tools, and use cases
    - **STEP 2 - RESEARCH**: Read MCP introduction from https://modelcontextprotocol.io/introduction and study @fastmcp-llm.txt for FastMCP usage
    - **STEP 3 - PROJECT INIT**: Use `uv init {mcp-server-name}` in workspace root to create new project directory
-   - **STEP 4 - PATH CONFIRMATION**: Verify project directory was created at `/home/{username}/Desktop/mcp-guide/{mcp-server-name}/`
+   - **STEP 4 - PATH CONFIRMATION**: Verify project directory was created at `/home/{`username`}/Desktop/mcp-guide/{mcp-server-name}/`
    - **STEP 5 - FILE CREATION**: Create all files using `{mcp-server-name}/` prefix for file operations
    - **STEP 6 - IMPLEMENTATION**: Implement templates with domain-specific logic
 
