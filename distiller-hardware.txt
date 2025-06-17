@@ -115,3 +115,53 @@ MCP servers should only use GPIO pins marked as "Yes" in the "Available" column.
 4. Document any required config.txt modifications in their server documentation
 
 When developing an MCP server to control hardware components, ensure your tools follow these specifications for optimal compatibility and reliability. Server implementations should document which GPIO pins or interfaces they require. 
+
+## Common Hardware Components and Specifications
+
+**Hardware Interface Selection Priority:**
+1. **lgpio** (preferred): Native CM5 support, best performance
+2. **pigpio** (fallback): Broader compatibility, daemon-based
+3. **RPi.GPIO** (legacy): Only if others unavailable
+
+### GPIO Library Compatibility Matrix
+
+| Library | PWM Support | Event Detection | I2C/SPI | CM5 Optimized |
+|---------|-------------|----------------|---------|---------------|
+| lgpio   | Hardware    | Yes            | Yes     | ✓ Native      |
+| pigpio  | Software    | Yes            | Limited | ⚠ Daemon     |
+| RPi.GPIO| Software    | Basic          | No      | ✗ Legacy      |
+
+### Recommended GPIO Pin Assignments
+
+**PWM-Capable Pins (Hardware PWM preferred):**
+- GPIO12: PWM0[0] 
+- GPIO14: PWM0[2]    
+- GPIO15: PWM0[3]  
+
+**General Purpose I/O (Available pins):**
+- GPIO2, GPIO3: I2C1  
+- GPIO17: General purpose 
+- GPIO22: General purpose  
+- GPIO23-25: General purpose
+- GPIO27: General purpose 
+
+### MCP Hardware Interface Pattern
+
+```python
+# Recommended hardware interface pattern for MCP servers
+def get_gpio_interface():
+    """Auto-select optimal GPIO library based on availability."""
+    try:
+        import lgpio
+        return "lgpio"
+    except ImportError:
+        try:
+            import pigpio
+            return "pigpio"  
+        except ImportError:
+            try:
+                import RPi.GPIO
+                return "RPi.GPIO"
+            except ImportError:
+                raise RuntimeError("No compatible GPIO library found")
+``` 

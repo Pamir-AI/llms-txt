@@ -29,6 +29,56 @@ Note:
 - arxiv-mcp is an existing mcp-server project provided for your reference
 - New projects should adopt the same directory structure as arxiv-mcp, including the src/{project_name}/ directory and tests/ directory
 
+# MCP Development Best Practices
+
+## Complete Solution Approach
+When creating an MCP server, aim for a **complete, self-contained solution** that includes:
+- Automated environment setup using uv
+- Proper project structure following established patterns
+- Comprehensive error handling and graceful degradation
+- End-to-end testing workflow with actual tool calls
+- Complete documentation (README) with setup and usage instructions
+
+## Learning from Existing Projects
+Before starting development:
+1. **Reference existing MCP projects** in the workspace to understand structure and patterns
+2. Study the arxiv-mcp implementation for architectural guidance
+3. Review similar hardware/domain-specific MCPs for relevant patterns
+4. Check `/home/distiller/distiller-cm5-mcp-hub/projects` for additional examples
+
+## Project Location Standards
+- **Standard project location**: `/home/distiller/distiller-cm5-mcp-hub/projects/{project-name}`
+- This enables integration with the MCP Hub management system
+- Follows the established distiller ecosystem structure
+- Allows for automatic discovery and configuration
+
+## Hardware Interface Selection
+For hardware-specific MCPs, implement intelligent interface selection:
+- **Auto-detect optimal hardware library** based on available interfaces and requirements
+- **Fallback hierarchy**: lgpio → pigpio → RPi.GPIO (based on distiller-hardware.txt specs)
+- **Document hardware requirements** including GPIO pins, voltage levels, and config.txt needs
+- **Validate hardware availability** before attempting operations
+
+## Testing Workflow Requirements
+Every MCP server must include:
+1. **Functional testing**: Call each tool with appropriate parameters after setup
+2. **Integration testing**: Verify MCP client can discover and invoke tools
+3. **Hardware testing** (if applicable): Test actual hardware operations
+4. **Error scenario testing**: Verify graceful degradation when hardware/dependencies unavailable
+5. **Documentation testing**: Ensure README instructions work end-to-end
+
+Example testing sequence:
+```bash
+# 1. Setup and start server
+uv sync
+uv run main.py --port 3000 &
+
+# 2. Test tool discovery and calls
+# (Include specific test calls for each tool)
+
+# 3. Verify expected behaviors and responses
+```
+
 # Architecture Principles
 Follow these key principles when creating MCP servers:
 

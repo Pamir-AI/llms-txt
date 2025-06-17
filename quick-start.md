@@ -126,6 +126,19 @@ curl -X POST http://<DEVICE_IP>:8080/v1/chat/completions \
 1. Clone **distiller-cm5-mcp-hub** on your workstation.
 2. ***\<TODO>***
 
+
+# Example prompt for Servo Motors
+``` When implementing servo control in MCP servers:
+
+**SG90 Micro Servo (Standard):**
+- **PWM Range**: 500-2400μs pulse width
+- **Operating Frequency**: 50Hz (20ms period)
+- **Rotation Range**: 0-180 degrees
+- **Recommended GPIO Pins**: 12, 14, 15 (PWM-capable pins)
+- **Power Requirements**: 5V supply (separate from GPIO)
+- **Control Logic**: 3.3V compatible
+```
+
 📺 **Video walkthrough:** \<VIDEO\_TUTORIAL\_MCP\_PLACEHOLDER>
 
 ---
