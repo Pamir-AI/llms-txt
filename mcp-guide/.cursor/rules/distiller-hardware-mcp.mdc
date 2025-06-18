@@ -1,0 +1,284 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Distiller Hardware MCP Development Rules
+
+## Environment Setup Requirements
+
+### Virtual Environment Management
+**CRITICAL**: Always use UV for Python environment management with specific system-site-packages inclusion:
+
+```bash
+uv venv --python /usr/bin/python3.11 --system-site-packages
+```
+
+## **🚨 CRITICAL UV ENVIRONMENT SETUP 🚨**
+
+### **The Golden Rule: UV Run Should Equal Manual Activation**
+**FUNDAMENTAL PRINCIPLE**: When configured correctly:
+- **`uv run python`** === **`source .venv/bin/activate && python`** ✅
+- If they behave differently, your UV configuration is wrong!
+
+### **Step-by-Step UV Hardware Setup (CORRECT WAY)**
+
+```bash
+# 1. CRITICAL: Set Python version (UV respects this file!)
+echo "3.11" > .python-version
+
+# 2. Create venv with system-site-packages
+uv venv --python /usr/bin/python3.11 --system-site-packages
+
+# 3. Add dependencies properly (updates pyproject.toml)
+uv add fastmcp numpy pillow
+uv add /path/to/hardware-sdk.whl
+
+# 4. Sync dependencies
+uv sync
+
+# 5. Test both methods work identically
+uv run python -c "import lgpio; import distiller_cm5_sdk; print('UV run works!')"
+source .venv/bin/activate && python -c "import lgpio; import distiller_cm5_sdk; print('Manual works!')"
+
+# 6. Run server with UV (should work!)
+uv run python main.py --port 8008
+```
+
+### **🔧 Critical Configuration Files**
+
+#### **`.python-version` File (MOST IMPORTANT)**
+```bash
+# This file controls which Python UV uses!
+echo "3.11" > .python-version
+```
+**WARNING**: If this says `3.13`, UV will use Python 3.13 regardless of other settings!
+
+#### **`pyproject.toml` Configuration**
+```toml
+[project]
+name = "hardware-mcp"
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp>=2.8.1",
+    "distiller-cm5-sdk",
+]
+
+[tool.uv.sources]
+distiller-cm5-sdk = { path = "/path/to/sdk.whl" }
+```
+
+## **❌ WRONG vs ✅ RIGHT Approaches**
+
+### **Dependency Management**
+❌ **WRONG**: `uv pip install package-name` (breaks reproducibility)
+✅ **RIGHT**: `uv add package-name` (updates pyproject.toml)
+
+❌ **WRONG**: Manual `pip install` in venv
+✅ **RIGHT**: `uv sync` from pyproject.toml
+
+### **Environment Usage**
+❌ **WRONG**: "Use manual activation because uv run doesn't work"
+✅ **RIGHT**: Fix UV configuration so both methods work identically
+
+❌ **WRONG**: Mixing pip and UV commands
+✅ **RIGHT**: Use UV exclusively for consistency
+
+## **🔍 Debugging UV Environment Issues**
+
+### **Verification Checklist**
+```bash
+# 1. Check what .python-version says
+cat .python-version  # Should show "3.11"
+
+# 2. Verify UV sees correct Python
+uv python list | grep 3.11
+
+# 3. Test both approaches identically
+uv run python -c "import sys; print('UV:', sys.version_info)"
+source .venv/bin/activate && python -c "import sys; print('Manual:', sys.version_info)"
+
+# 4. Test hardware imports
+uv run python -c "import lgpio; print('Hardware libs OK')"
+```
+
+### **Common Problems & Solutions**
+
+1. **`.python-version` specifies wrong version**
+   - **Symptom**: UV uses Python 3.13 instead of 3.11
+   - **Fix**: `echo "3.11" > .python-version`
+
+2. **Missing system-site-packages**
+   - **Symptom**: `ModuleNotFoundError: No module named 'lgpio'` with UV
+   - **Fix**: Recreate venv with `--system-site-packages`
+
+3. **Dependency not in pyproject.toml**
+   - **Symptom**: Package works manually but not reproducibly
+   - **Fix**: Use `uv add package` instead of `uv pip install`
+
+4. **Environment recreation**
+   - **Symptom**: UV keeps recreating venv with different Python
+   - **Fix**: Ensure `.python-version` matches venv creation
+
+## **🛠 Hardware-Specific Requirements**
+
+### **Required System Libraries**
+- `lgpio` - GPIO control (system-installed, accessed via system-site-packages)
+- `spidev` - SPI communication (system-installed)
+- Hardware-specific libraries in `/usr/lib/python3/dist-packages/`
+
+### **SDK Integration**
+```bash
+# Add SDK as proper dependency
+uv add /home/distiller/distiller-cm5-sdk/dist/distiller_cm5_sdk-0.1.0-py3-none-any.whl
+```
+
+### **Testing Hardware Integration**
+```bash
+# Both should work identically
+uv run python -c "import lgpio; import distiller_cm5_sdk; print('All hardware OK')"
+source .venv/bin/activate && python -c "import lgpio; import distiller_cm5_sdk; print('All hardware OK')"
+```
+
+## **📦 Project Configuration Template**
+
+### **Complete pyproject.toml**
+```toml
+[project]
+name = "hardware-mcp-server"
+version = "0.1.0"
+description = "Hardware MCP Server"
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp>=2.8.1",
+    "numpy>=2.3.0", 
+    "pillow>=11.2.1",
+    "distiller-cm5-sdk",
+]
+
+[tool.uv.sources]
+distiller-cm5-sdk = { path = "../../../distiller-cm5-sdk/dist/distiller_cm5_sdk-0.1.0-py3-none-any.whl" }
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+    "pytest-asyncio>=0.24.0",
+]
+```
+
+### **Required Files**
+- `.python-version` → `3.11`
+- `pyproject.toml` → Complete dependency specification
+- No manual dependency tracking needed
+
+## **🚀 Server Deployment**
+
+### **Verified Working Pattern**
+```bash
+# This sequence guarantees success
+echo "3.11" > .python-version
+uv venv --python /usr/bin/python3.11 --system-site-packages
+uv sync
+uv run python main.py --port 8008  # Should work perfectly!
+```
+
+### **Connection Information**
+- **Local**: `http://127.0.0.1:{port}/mcp/`
+- **Remote**: `http://{machine-ip}:{port}/mcp/`
+- Get IP: `hostname -I | awk '{print $1}'`
+
+## **💡 Key Principles**
+
+1. **Single Source of Truth**: pyproject.toml manages all dependencies
+2. **Environment Consistency**: UV run === manual activation when configured correctly
+3. **Python Version Control**: `.python-version` file is authoritative 
+4. **Reproducibility**: `uv sync` recreates exact environment from pyproject.toml
+5. **Hardware Access**: `--system-site-packages` during venv creation enables hardware libraries
+
+**Remember**: If UV behavior seems wrong, check configuration first - UV works perfectly when set up correctly! 🎯
+
+## Hardware Environment Context
+
+Reference the comprehensive hardware specifications in [distiller-hardware.txt](mdc:llms-txt/distiller-hardware.txt), which covers:
+
+### Available Hardware Components
+- Raspberry Pi Compute Module 5 (CM5) main processing unit
+- Audio codec (TLV320AIC3204IRHBR) for audio processing
+- RP2040 microcontroller connected via UART2
+- SPI-based E-Ink Display with custom BSP Linux driver
+- Camera and display MIPI connectors
+
+### GPIO Access Requirements
+- **Primary Library**: Use `lgpio` for all GPIO operations (CM5-optimized)
+- **Available GPIO Pins**: Only use pins marked as "Available: Yes" in the hardware specification
+- **Voltage Considerations**: Respect 1.8V or 3.3V signaling requirements
+- **Configuration**: Some alternative functions require `/boot/firmware/config.txt` modifications
+
+### GPIO Pin Availability Summary
+**Available for MCP Development:**
+- GPIO2, GPIO3: I2C1 (also available for general use)
+- GPIO12: PWM0[0] (hardware PWM)
+- GPIO14: PWM0[2] (hardware PWM)  
+- GPIO15: PWM0[3] (hardware PWM)
+- GPIO17: E-Ink Touch Interrupt (general purpose when not used)
+- GPIO22: SAM Interrupt Pin (general purpose when not used)
+- GPIO23-25: General purpose I/O
+- GPIO27: E-Ink Touch Reset (general purpose when not used)
+
+**Reserved/Unavailable:**
+- GPIO0-1: EEPROM communication
+- GPIO4-5: UART2 to microcontroller
+- GPIO6-11: E-Ink display and I2S codec
+- GPIO13: E-Ink RESET
+- GPIO16: RP2040 boot control
+- GPIO18-21: I2S audio codec
+- GPIO26: Codec RESET
+
+### Hardware Interface Priority
+1. **lgpio** (preferred): Native CM5 support, best performance
+2. **pigpio** (fallback): Broader compatibility, daemon-based  
+3. **RPi.GPIO** (legacy): Only if others unavailable
+
+## MCP Server Development Guidelines
+
+### Project Structure
+Follow the standard MCP server structure with hardware-specific considerations:
+- Separate hardware control logic from MCP server logic
+- Implement graceful degradation when hardware is unavailable
+- Include proper error handling for GPIO operations
+- Document required config.txt modifications
+
+### Common Hardware Integration Patterns
+```python
+# Recommended hardware interface detection
+def get_gpio_interface():
+    """Auto-select optimal GPIO library based on availability."""
+    try:
+        import lgpio
+        return "lgpio"
+    except ImportError:
+        try:
+            import pigpio
+            return "pigpio"  
+        except ImportError:
+            try:
+                import RPi.GPIO
+                return "RPi.GPIO"
+            except ImportError:
+                raise RuntimeError("No compatible GPIO library found")
+```
+
+### Hardware Component Access
+- **Audio**: Use distiller-cm5-sdk audio module for microphone/speaker operations
+- **Camera**: Use distiller-cm5-sdk camera module for image capture
+- **E-Ink Display**: Use distiller-cm5-sdk eink module for display operations
+- **GPIO**: Use lgpio library for direct pin control
+- **RP2040 Communication**: Use UART2 interface (GPIO4/5)
+
+### Error Handling Requirements
+- Always implement graceful degradation for hardware failures
+- Provide meaningful error messages for hardware unavailability
+- Include fallback behaviors when hardware services are down
+- Clean up GPIO resources properly in finally blocks
+
+This rule ensures consistent hardware MCP development practices across the distiller platform.
