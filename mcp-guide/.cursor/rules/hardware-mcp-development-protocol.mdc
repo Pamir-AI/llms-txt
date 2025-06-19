@@ -1,0 +1,171 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Hardware MCP Development Protocol
+
+## 🚨 CRITICAL: Hardware-First Development Rule
+
+**FUNDAMENTAL PRINCIPLE**: When building hardware control MCP servers, **HARDWARE VERIFICATION MUST COME FIRST**. No exceptions.
+
+### ⛔ NEVER DO THIS (Anti-Pattern)
+- Building MCP server structure before verifying hardware works
+- Ignoring hardware warnings like "Hardware SDK not available - using simulation mode"
+- Treating simulation mode as "good enough" for hardware control servers
+- Building elaborate documentation and demos around non-functional hardware
+- Assuming hardware integration will "work out later"
+
+### ✅ MANDATORY HARDWARE-FIRST PROTOCOL
+
+#### Step 1: Hardware Verification (BEFORE ANY MCP CODE)
+```bash
+# 1. Test system hardware access
+uv run python -c "import lgpio; print('✅ GPIO access OK')"
+
+# 2. Test SDK import
+uv run python -c "import distiller_cm5_sdk; print('✅ SDK import OK')"
+
+# 3. Test specific hardware module
+uv run python -c "from distiller_cm5_sdk.hardware.eink.eink import EinkDriver; print('✅ Hardware driver OK')"
+
+# 4. Test hardware initialization
+uv run python -c "
+from distiller_cm5_sdk.hardware.eink.eink import EinkDriver
+driver = EinkDriver()
+result = driver.initialize()
+print(f'✅ Hardware init: {result}')
+driver.cleanup()
+"
+```
+
+**🛑 STOP RULE**: If ANY of these fail, DO NOT proceed with MCP server development until fixed.
+
+#### Step 2: Environment Setup (Following Documentation)
+Reference [distiller-hardware-mcp.mdc](mdc:llms-txt/mcp-guide/.cursor/rules/distiller-hardware-mcp.mdc) for exact sequence:
+
+```bash
+# Exact sequence from docs:
+echo "3.11" > .python-version
+uv venv --python /usr/bin/python3.11 --system-site-packages
+uv add fastmcp numpy pillow
+uv add path/to/distiller_cm5_sdk.whl
+uv sync
+```
+
+#### Step 3: Hardware Integration Module (Before MCP Server)
+Create hardware abstraction layer that:
+- ✅ Detects real hardware availability
+- ✅ Fails gracefully when hardware unavailable
+- ✅ Provides meaningful error messages
+- ❌ NO simulation mode for hardware control servers
+
+#### Step 4: Hardware Integration Test (Before MCP Tools)
+```python
+# Test script that MUST pass before building MCP server
+def test_hardware_ready():
+    controller = YourHardwareController()
+    assert controller.initialize() == True
+    assert controller.hardware_available == True
+    # Test actual hardware operations
+    assert controller.basic_operation() == True
+    controller.cleanup()
+    print("✅ Hardware ready for MCP integration")
+```
+
+#### Step 5: MCP Server Development (Only After Hardware Verified)
+Follow [mcp-develop-rule.mdc](mdc:llms-txt/mcp-guide/.cursor/rules/mcp-develop-rule.mdc) protocols:
+- Path verification protocol
+- Requirements confirmation
+- Systematic testing
+
+## 🎯 Hardware MCP Server Checklist
+
+### Before Writing Any MCP Code:
+- [ ] Hardware SDK imports successfully
+- [ ] Hardware driver initializes without errors
+- [ ] Basic hardware operations work (display, clear, etc.)
+- [ ] Hardware module has proper error handling
+- [ ] No "simulation mode" warnings in logs
+
+### During MCP Development:
+- [ ] Each MCP tool tested with real hardware
+- [ ] Error handling for hardware failures implemented
+- [ ] Resource cleanup (GPIO, SPI, etc.) properly handled
+- [ ] Hardware status reporting available
+
+### Before Deployment:
+- [ ] Full hardware integration test passes
+- [ ] MCP server connects to real hardware
+- [ ] All MCP tools work with physical hardware
+- [ ] Error messages are hardware-specific and helpful
+
+## ⚠️ Warning Signs to Stop Development
+
+If you see any of these, **STOP and fix hardware first**:
+- "Hardware SDK not available"
+- "using simulation mode"
+- "Mock hardware driver"
+- "Hardware not detected"
+- Any hardware import errors
+
+## 🔧 Hardware-Specific Development Patterns
+
+### Proper Hardware Detection
+```python
+# ✅ CORRECT: Hardware-first with clear failure
+try:
+    from distiller_cm5_sdk.hardware.eink.eink import EinkDriver
+    HARDWARE_AVAILABLE = True
+except ImportError as e:
+    raise RuntimeError(f"Hardware SDK required for hardware control server: {e}")
+
+# ❌ WRONG: Fallback to simulation
+try:
+    from real_hardware import Driver
+    HARDWARE_AVAILABLE = True
+except ImportError:
+    from mock_hardware import MockDriver as Driver  # DON'T DO THIS
+    HARDWARE_AVAILABLE = False
+```
+
+### Proper Error Handling
+```python
+def hardware_operation(self):
+    if not self.initialized:
+        if not self.initialize():
+            raise RuntimeError("Hardware initialization failed - check connections and permissions")
+    
+    try:
+        return self.driver.operation()
+    except Exception as e:
+        raise RuntimeError(f"Hardware operation failed: {e}. Check hardware status.")
+```
+
+## 📋 Documentation Reference Priority
+
+1. **Hardware Integration**: [distiller-hardware-mcp.mdc](mdc:llms-txt/mcp-guide/.cursor/rules/distiller-hardware-mcp.mdc)
+2. **MCP Development**: [mcp-develop-rule.mdc](mdc:llms-txt/mcp-guide/.cursor/rules/mcp-develop-rule.mdc)
+3. **Hardware Specifications**: [distiller-hardware.txt](mdc:llms-txt/distiller-hardware.txt)
+
+## 🎓 Key Lessons
+
+1. **Hardware verification is not optional** - it's the foundation
+2. **Simulation mode has no place** in hardware control servers
+3. **Follow documentation protocols systematically** - they prevent common mistakes
+4. **Test hardware early and often** - don't build on broken foundations
+5. **Meaningful error messages** help users troubleshoot hardware issues
+
+## 🚀 Success Pattern
+
+```bash
+# This sequence guarantees hardware MCP success:
+1. Verify hardware access (lgpio, SDK, drivers)
+2. Create hardware abstraction layer
+3. Test hardware operations thoroughly
+4. Build MCP server with verified hardware
+5. Test MCP tools with real hardware
+6. Deploy with confidence
+```
+
+**Remember**: A hardware control server that can't control hardware is not just broken - it's fundamentally useless. Hardware first, always.
